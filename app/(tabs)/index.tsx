@@ -1,70 +1,67 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import React, { useState } from 'react';
+import { StyleSheet, Button, FlatList, Text, View, ActivityIndicator, Alert } from 'react-native';
 
 export default function HomeScreen() {
+  const [loading, setLoading] = useState(false);
+  const [parkingData, setParkingData] = useState([]);
+
+  // 访问 API 的函数
+  const fetchParkingData = async () => {
+    setLoading(true); // 显示加载指示器
+    try {
+      const response = await fetch(
+        'https://api.data.gov.sg/v1/transport/carpark-availability'
+      );
+      const data = await response.json(); // 解析响应为 JSON
+      setParkingData(data.items[0].carpark_data); // 提取 carpark_data 数组
+      setLoading(false); // 隐藏加载指示器
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch parking data.'); // 错误处理
+      setLoading(false);
+    }
+  };
+
+  // 渲染停车场数据
+  const renderParkingItem = ({ item }) => (
+    <View style={styles.parkingItem}>
+      <Text style={styles.parkingText}>Carpark: {item.carpark_number}</Text>
+      <Text style={styles.parkingText}>Total lots: {item.carpark_info[0].total_lots}</Text>
+      <Text style={styles.parkingText}>Lot type: {item.carpark_info[0].lot_type}</Text>
+      <Text style={styles.parkingText}>Available lots: {item.carpark_info[0].lots_available}</Text>
+      <Text style={styles.parkingText}>Last updated: {item.update_datetime}</Text>
+    </View>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <Button title="Fetch Parking Data" onPress={fetchParkingData} />
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <FlatList
+          data={parkingData}
+          renderItem={renderParkingItem}
+          keyExtractor={(item) => item.carpark_number.toString()}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  parkingItem: {
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    marginBottom: 10,
+    borderRadius: 5,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  parkingText: {
+    fontSize: 16,
   },
 });
